@@ -81,8 +81,8 @@ export const useTransferStore = defineStore('transfers', () => {
     const deadline = new Date(Date.now() + 72 * 3600 * 1000).toISOString()
     const updated = await transferRepo.update(id, {
       status: 'negotiating',
-      negotiationStep: 'offer_sent' as NegotiationStep,
-      roundCount: 1,
+      negotiationStep: 'idle' as NegotiationStep,
+      roundCount: 0,
       maxRounds: 4,
       negotiationDeadline: deadline,
       marketHeat: t.marketHeat ?? Math.round(Math.random() * 60 + 20),
@@ -112,19 +112,56 @@ export const useTransferStore = defineStore('transfers', () => {
     const ctx = { player, contract, transfer: t }
     const counter = computeCounterOffer(ctx, amount)
 
-    const nextStep: NegotiationStep =
+    const ourNextStep: NegotiationStep =
       t.negotiationStep === 'idle' || t.negotiationStep === undefined
         ? 'offer_sent'
         : t.negotiationStep === 'counter_received'
           ? 'offer_2_sent'
           : 'final_offer'
 
-    const updated = await transferRepo.update(id, {
+    const newRoundCount = (t.roundCount ?? 0) + 1
+
+    if (counter.shouldAutoDeal) {
+      const dealPrice = Math.round(amount)
+      const updated = await transferRepo.update(id, {
+        status: 'done',
+        negotiationStep: 'deal',
+        currentOffer: amount,
+        currentCounter: dealPrice,
+        roundCount: newRoundCount,
+        acceptedPrice: dealPrice,
+      })
+      if (updated) {
+        const i = transfers.value.findIndex((x) => x.id === id)
+        transfers.value[i] = updated
+      }
+      await addLog({
+        id: uid('tl'),
+        transferId: id,
+        event: '我方报价',
+        amount,
+        note: `我方提出报价，预期成交概率 ${counter.acceptProbability}%。`,
+        createdAt: new Date().toISOString(),
+        side: 'us',
+      })
+      await addLog({
+        id: uid('tl'),
+        transferId: id,
+        event: '成交',
+        amount: dealPrice,
+        note: counter.rationale + ` 成交价 ¥${dealPrice.toLocaleString()}。`,
+        createdAt: new Date(Date.now() + 600).toISOString(),
+        side: 'system',
+      })
+      return { counter, nextStep: 'deal' as NegotiationStep, autoDealt: true }
+    }
+
+    let updated = await transferRepo.update(id, {
       status: 'negotiating',
-      negotiationStep: counter.nextStep,
+      negotiationStep: ourNextStep,
       currentOffer: amount,
       currentCounter: counter.counterPrice,
-      roundCount: (t.roundCount ?? 0) + 1,
+      roundCount: newRoundCount,
     })
     if (updated) {
       const i = transfers.value.findIndex((x) => x.id === id)
@@ -143,6 +180,14 @@ export const useTransferStore = defineStore('transfers', () => {
 
     await new Promise((r) => setTimeout(r, 600))
 
+    updated = await transferRepo.update(id, {
+      negotiationStep: counter.nextStep,
+    })
+    if (updated) {
+      const i = transfers.value.findIndex((x) => x.id === id)
+      transfers.value[i] = updated
+    }
+
     await addLog({
       id: uid('tl'),
       transferId: id,
@@ -153,7 +198,7 @@ export const useTransferStore = defineStore('transfers', () => {
       side: 'them',
     })
 
-    return { counter, nextStep }
+    return { counter, nextStep: ourNextStep, autoDealt: false }
   }
 
   async function acceptCounter(id: string) {
@@ -181,6 +226,19 @@ export const useTransferStore = defineStore('transfers', () => {
   }
 
   async function walkOut(id: string) {
+    const t = transfers.value.find((x) => x.id === id)
+    if (!t) return { error: '转会不存在' }
+    if (t.status !== 'negotiating') return { error: '只有进行中的谈判才能愤然离席' }
+    const logsOfT = logsOf.value(id)
+    const lastThemLog = [...logsOfT].reverse().find((l) => l.side === 'them')
+    const player = team.playerById(t.playerId)
+    const contract = team.contractByPlayer(t.playerId)
+    if (player && contract) {
+      const ctx = { player, contract, transfer: t }
+      const prevAmount = lastThemLog?.amount ?? t.currentCounter
+      const ratio = prevAmount ? prevAmount / Math.max(1, computeCounterOffer(ctx, t.askPrice).counterPrice || 1) : 1
+      if (ratio > 0.7) return { error: '对方并未给出明显低价，无法愤然离席' }
+    }
     const updated = await transferRepo.update(id, {
       status: 'walked_out',
       negotiationStep: 'collapse',
@@ -198,6 +256,7 @@ export const useTransferStore = defineStore('transfers', () => {
       createdAt: new Date().toISOString(),
       side: 'us',
     })
+    return { ok: true }
   }
 
   async function cancelNegotiation(id: string) {

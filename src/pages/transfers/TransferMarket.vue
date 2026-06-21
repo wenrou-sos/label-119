@@ -144,6 +144,30 @@ function previewProb(amount: number) {
     amount,
   ).acceptProbability
 }
+
+const lowballDetected = computed(() => {
+  if (!selected.value?.player || !selected.value?.contract || !selected.value?.currentCounter) return false
+  const ctx = {
+    player: selected.value.player,
+    contract: selected.value.contract,
+    transfer: selected.value,
+  }
+  const counter = computeCounterOffer(ctx, selected.value.currentCounter)
+  const ask = selected.value.askPrice
+  const base = (selected.value.player.rating ?? 75) / 80 * ask * (1 - Math.abs(selected.value.player.age - 23) * 0.04)
+  return (
+    selected.value.currentCounter < ask * 0.55 ||
+    selected.value.currentCounter < base * 0.7 ||
+    counter.isLowball
+  )
+})
+
+watch(
+  () => selected.value?.id,
+  () => {
+    lastCounter.value = null
+  },
+)
 </script>
 
 <template>
@@ -213,7 +237,7 @@ function previewProb(amount: number) {
                   <Check :size="13" /> 接受还价
                 </button>
                 <button
-                  v-if="selected.status === 'negotiating' && lastCounter?.isLowball"
+                  v-if="selected.status === 'negotiating' && lowballDetected"
                   class="btn-ember !py-1.5 text-xs"
                   @click="walkOut"
                 >
@@ -241,7 +265,7 @@ function previewProb(amount: number) {
               </div>
               <div class="rounded-md border border-edge bg-panel p-2.5 text-xs">
                 <div class="text-muted">对方还价</div>
-                <div class="mt-0.5 font-mono text-lg" :class="lastCounter?.isLowball ? 'text-ember' : 'text-ember/90'">
+                <div class="mt-0.5 font-mono text-lg" :class="lowballDetected ? 'text-ember' : 'text-ember/90'">
                   {{ selected.currentCounter ? formatMoney(selected.currentCounter) : '—' }}
                 </div>
                 <div v-if="lastCounter" class="mt-1 text-[10px] text-muted">成交概率 {{ lastCounter.prob }}%</div>

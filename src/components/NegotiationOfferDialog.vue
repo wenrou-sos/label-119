@@ -145,11 +145,13 @@ function quickSet(ratio: number) {
 
         <div class="flex items-center justify-between gap-2 border-t border-edge bg-panel-2 px-5 py-3">
           <button
+            v-if="isLowball"
             class="rounded-md border border-ember/50 bg-ember/10 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-ember transition hover:bg-ember/20"
             @click="emit('walk-out')"
           >
             愤然离席
           </button>
+          <div v-else></div>
           <div class="flex gap-2">
             <button
               class="rounded-md border border-edge bg-panel px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted transition hover:text-fg"

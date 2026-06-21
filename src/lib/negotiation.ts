@@ -13,6 +13,7 @@ export interface CounterOfferResult {
   isLowball: boolean
   rationale: string
   nextStep: NegotiationStep
+  shouldAutoDeal: boolean
 }
 
 export interface DealResult {
@@ -49,6 +50,20 @@ export function nextStep(current: NegotiationStep, isOurMove: boolean): Negotiat
   return order[Math.min(idx + 1, order.length - 1)]
 }
 
+export function nextStepForRound(prevStep: NegotiationStep | undefined, isOurMove: boolean, reachedFinal: boolean): NegotiationStep {
+  if (reachedFinal) return 'deal'
+  if (isOurMove) {
+    if (!prevStep || prevStep === 'idle') return 'offer_sent'
+    if (prevStep === 'counter_received') return 'offer_2_sent'
+    if (prevStep === 'counter_2_received') return 'final_offer'
+    return 'offer_sent'
+  } else {
+    if (prevStep === 'offer_sent') return 'counter_received'
+    if (prevStep === 'offer_2_sent') return 'counter_2_received'
+    return 'final_offer'
+  }
+}
+
 function computeBaseValue(ctx: NegotiationContext): number {
   const { player, contract, transfer } = ctx
   const ageFactor = Math.max(0.6, 1 - Math.abs(player.age - 23) * 0.04)
@@ -59,8 +74,8 @@ function computeBaseValue(ctx: NegotiationContext): number {
 
 export function computeComplexity(ctx: NegotiationContext): 'standard' | 'urgent' | 'complex' {
   const days = ctx.contract ? daysUntil(ctx.contract.endDate) : 365
-  if (ctx.contract?.buyout && ctx.contract.buyout > 0) return 'complex'
   if (days < 180) return 'urgent'
+  if (ctx.contract?.buyout && ctx.contract.buyout > 0) return 'complex'
   return 'standard'
 }
 
@@ -99,6 +114,7 @@ export function computeCounterOffer(
   let counter: number
   let isLowball = false
   let rationale = ''
+  let shouldAutoDeal = false
 
   if (offerRatio < 0.5) {
     isLowball = true
@@ -110,7 +126,8 @@ export function computeCounterOffer(
     rationale = '报价明显低于选手身价，对方坚持要价。'
   } else if (ourOffer >= targetAccept) {
     counter = ourOffer
-    rationale = '报价已达到对方心理预期，可直接成交。'
+    shouldAutoDeal = true
+    rationale = '报价已达到对方心理预期，同意成交。'
   } else {
     const gap = targetAccept - ourOffer
     counter = Math.round(ourOffer + gap * 0.55)
@@ -127,9 +144,9 @@ export function computeCounterOffer(
     Math.max(0.05, 0.25 + buyoutBonus + deadlineBonus + valueBonus),
   )
 
-  const stepsAfter = STEP_ORDER.indexOf(transfer.negotiationStep ?? 'idle')
-  const nextS: NegotiationStep =
-    stepsAfter <= 1 ? 'counter_received' : stepsAfter <= 3 ? 'counter_2_received' : 'final_offer'
+  const nextS: NegotiationStep = shouldAutoDeal
+    ? 'deal'
+    : nextStepForRound(transfer.negotiationStep, false, false)
 
   return {
     counterPrice: counter,
@@ -137,6 +154,7 @@ export function computeCounterOffer(
     isLowball,
     rationale,
     nextStep: nextS,
+    shouldAutoDeal,
   }
 }
 
@@ -145,9 +163,11 @@ export function evaluateDeal(
   ourOffer: number,
 ): DealResult {
   const result = computeCounterOffer(ctx, ourOffer)
-  const success = Math.random() * 100 < result.acceptProbability || ourOffer >= result.counterPrice
+  const success = Math.random() * 100 < result.acceptProbability || ourOffer >= result.counterPrice || result.shouldAutoDeal
   if (success) {
-    const finalPrice = Math.round(ourOffer + (result.counterPrice - ourOffer) * Math.random() * 0.4)
+    const finalPrice = result.shouldAutoDeal
+      ? ourOffer
+      : Math.round(ourOffer + (result.counterPrice - ourOffer) * Math.random() * 0.4)
     return {
       success: true,
       finalPrice,
@@ -161,7 +181,7 @@ export function evaluateDeal(
   }
 }
 
-export function hoursUntilDeadline(deadline?: string): number {
-  if (!deadline) return 72
+export function hoursUntilDeadline(deadline?: string): number | null {
+  if (!deadline) return null
   return Math.max(0, Math.round((new Date(deadline).getTime() - Date.now()) / 3600000))
 }

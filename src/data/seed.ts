@@ -588,7 +588,7 @@ export const transfers: Transfer[] = [
     negotiationStep: 'counter_received',
     currentOffer: 800000,
     currentCounter: 920000,
-    roundCount: 2,
+    roundCount: 1,
     maxRounds: 4,
     negotiationDeadline: new Date(Date.now() + 36 * 3600 * 1000).toISOString(),
     marketHeat: 72,
