@@ -81,6 +81,7 @@ export const players: Player[] = [
     joinDate: '2024-11-01',
     status: 'active',
     avatar: 'K',
+    rating: 82,
   },
   {
     id: 'p2',
@@ -95,6 +96,7 @@ export const players: Player[] = [
     joinDate: '2023-06-15',
     status: 'active',
     avatar: 'V',
+    rating: 88,
   },
   {
     id: 'p3',
@@ -109,6 +111,7 @@ export const players: Player[] = [
     joinDate: '2022-01-10',
     status: 'active',
     avatar: 'L',
+    rating: 91,
   },
   {
     id: 'p4',
@@ -123,6 +126,7 @@ export const players: Player[] = [
     joinDate: '2024-03-01',
     status: 'active',
     avatar: 'E',
+    rating: 78,
   },
   {
     id: 'p5',
@@ -137,6 +141,7 @@ export const players: Player[] = [
     joinDate: '2023-09-01',
     status: 'active',
     avatar: 'S',
+    rating: 80,
   },
   {
     id: 'p6',
@@ -151,6 +156,7 @@ export const players: Player[] = [
     joinDate: '2025-02-01',
     status: 'training',
     avatar: 'P',
+    rating: 72,
   },
 ]
 
@@ -574,11 +580,18 @@ export const transfers: Transfer[] = [
     id: 'tf3',
     playerId: 'p2',
     type: 'negotiate',
-    status: 'open',
+    status: 'negotiating',
     askPrice: 980000,
     city: '首尔',
     latitude: 37.55,
     longitude: 126.97,
+    negotiationStep: 'counter_received',
+    currentOffer: 800000,
+    currentCounter: 920000,
+    roundCount: 2,
+    maxRounds: 4,
+    negotiationDeadline: new Date(Date.now() + 36 * 3600 * 1000).toISOString(),
+    marketHeat: 72,
   },
 ]
 
@@ -590,6 +603,7 @@ export const transferLogs: TransferLog[] = [
     amount: 250000,
     note: '青训选手挂牌，寻找租借机会',
     createdAt: dt(dayOffset(-3)),
+    side: 'system',
   },
   {
     id: 'tl2',
@@ -597,21 +611,24 @@ export const transferLogs: TransferLog[] = [
     event: '试训安排',
     note: '安排 3 天试训，考察适配性',
     createdAt: dt(dayOffset(-1)),
+    side: 'system',
   },
   {
     id: 'tl3',
     transferId: 'tf3',
-    event: '报价',
+    event: '我方报价',
     amount: 800000,
-    note: '对方初步报价 80 万，低于违约金',
+    note: '首次出价，低于对方违约金预期',
     createdAt: dt(dayOffset(-4)),
+    side: 'us',
   },
   {
     id: 'tl4',
     transferId: 'tf3',
-    event: '还价',
-    amount: 980000,
-    note: '我方坚持违约金金额',
+    event: '对方还价',
+    amount: 920000,
+    note: '对方团队让步 6 万，考虑到合同即将到期',
     createdAt: dt(dayOffset(-1)),
+    side: 'them',
   },
 ]

@@ -9,7 +9,9 @@ export type MatchResult = 'WIN' | 'LOSS' | 'DRAW'
 export type TaskType = 'scrim' | 'rank' | 'fitness' | 'psych' | 'media'
 export type TaskStatus = 'todo' | 'doing' | 'done'
 export type TransferType = 'list' | 'trial' | 'renew' | 'negotiate'
-export type TransferStatus = 'open' | 'trialing' | 'done' | 'failed'
+export type TransferStatus = 'open' | 'trialing' | 'negotiating' | 'done' | 'failed' | 'walked_out'
+export type NegotiationStep = 'idle' | 'offer_sent' | 'counter_received' | 'offer_2_sent' | 'counter_2_received' | 'final_offer' | 'deal' | 'collapse'
+export type ComplexityLevel = 'standard' | 'urgent' | 'complex'
 export type HeroTier = 'S' | 'A' | 'B'
 
 export interface Version {
@@ -46,6 +48,7 @@ export interface Player {
   joinDate: string
   status: PlayerStatus
   avatar: string
+  rating?: number
 }
 
 export interface PlayerHero {
@@ -161,6 +164,14 @@ export interface Transfer {
   city: string
   latitude: number
   longitude: number
+  negotiationStep?: NegotiationStep
+  currentOffer?: number
+  currentCounter?: number
+  roundCount?: number
+  maxRounds?: number
+  negotiationDeadline?: string
+  marketHeat?: number
+  acceptedPrice?: number
 }
 
 export interface TransferLog {
@@ -170,6 +181,7 @@ export interface TransferLog {
   amount?: number
   note: string
   createdAt: string
+  side?: 'us' | 'them' | 'system'
 }
 
 export interface ScoringCriterion {

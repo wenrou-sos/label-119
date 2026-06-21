@@ -38,7 +38,7 @@ import type {
 } from './types'
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v))
-const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`
+export const uid = (p: string) => `${p}_${Math.random().toString(36).slice(2, 9)}`
 const wait = (ms = 60) => new Promise<void>((r) => setTimeout(r, ms))
 
 class MemoryRepository<T extends { id: string }> {
