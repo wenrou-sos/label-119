@@ -260,16 +260,21 @@ function genTrainingLogs(): TrainingLog[] {
   const logs: TrainingLog[] = []
   let id = 1
   for (const p of players) {
-    for (let i = 13; i >= 0; i--) {
+    for (let i = 89; i >= 0; i--) {
       const date = d(dayOffset(-i))
       const base = p.status === 'training' ? 0.7 : 1
+      const dow = new Date(dayOffset(-i)).getDay()
+      const skipProb = dow === 0 ? 0.35 : (dow === 6 ? 0.2 : 0.05 + (i % 11) * 0.003)
+      if (Math.random() < skipProb) continue
+      const wave = 0.85 + 0.3 * Math.sin(i / 7 + (p.id.charCodeAt(1) % 5))
+      const intensity = base * wave
       logs.push({
         id: `t${id++}`,
         playerId: p.id,
         logDate: date,
-        rankPoints: Math.round((40 + Math.random() * 60) * base),
-        rankGames: Math.round((6 + Math.random() * 10) * base),
-        scrimGames: Math.round(Math.random() * 6),
+        rankPoints: Math.round((40 + Math.random() * 60) * intensity),
+        rankGames: Math.round((6 + Math.random() * 10) * intensity),
+        scrimGames: dow === 3 || dow === 5 ? Math.round(2 + Math.random() * 4) : Math.round(Math.random() * 3),
       })
     }
   }

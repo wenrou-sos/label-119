@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 withDefaults(
   defineProps<{
     title?: string
+    subtitle?: string
     icon?: string
     accent?: 'acid' | 'ember' | 'steel' | 'none'
     padded?: boolean
@@ -24,12 +25,15 @@ withDefaults(
     "
   >
     <header
-      v-if="title || $slots.actions || $slots.header"
+      v-if="title || subtitle || $slots.actions || $slots.header"
       class="flex items-center justify-between gap-3 border-b border-edge px-4 py-3"
     >
-      <div class="flex items-center gap-2">
-        <span v-if="icon" class="text-base leading-none">{{ icon }}</span>
-        <h3 v-if="title" class="section-title">{{ title }}</h3>
+      <div class="flex items-start gap-2">
+        <span v-if="icon" class="pt-0.5 text-base leading-none">{{ icon }}</span>
+        <div class="flex flex-col gap-0.5">
+          <h3 v-if="title" class="section-title leading-tight">{{ title }}</h3>
+          <p v-if="subtitle" class="text-xs text-muted">{{ subtitle }}</p>
+        </div>
       </div>
       <slot name="actions" />
     </header>

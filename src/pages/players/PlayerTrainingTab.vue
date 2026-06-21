@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { Download, Flame, Gamepad2, TrendingUp } from 'lucide-vue-next'
 import BaseCard from '@/components/BaseCard.vue'
 import StatCard from '@/components/StatCard.vue'
 import TrainingTrendChart from './TrainingTrendChart.vue'
+import TrainingHeatmap from './TrainingHeatmap.vue'
+import TrainingMetricCards from './TrainingMetricCards.vue'
 import { useTeamStore } from '@/stores/team'
 import { exportCsv, formatDate } from '@/lib/format'
 
@@ -13,6 +15,10 @@ const team = useTeamStore()
 const logs = computed(() => team.logsOfPlayer(props.playerId))
 const player = computed(() => team.playerById(props.playerId))
 
+const detailRef = ref<HTMLElement | null>(null)
+const heatmapRef = ref<HTMLElement | null>(null)
+const trendRef = ref<HTMLElement | null>(null)
+
 const stats = computed(() => {
   const l = logs.value
   const totalGames = l.reduce((s, x) => s + x.rankGames, 0)
@@ -21,6 +27,15 @@ const stats = computed(() => {
   const totalScrims = l.reduce((s, x) => s + x.scrimGames, 0)
   return { totalGames, totalPoints, avgPoints, totalScrims }
 })
+
+async function scrollTo(target: 'fatigue' | 'trend' | 'balance' | 'streak') {
+  await nextTick()
+  const el =
+    target === 'fatigue' ? heatmapRef.value :
+    target === 'trend' ? trendRef.value :
+    detailRef.value
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 
 function exportData() {
   exportCsv(`training_${player.value?.handle ?? 'player'}.csv`, [
@@ -43,7 +58,13 @@ function exportData() {
       <StatCard label="训练赛场次" :value="stats.totalScrims" tone="ember" :icon="Gamepad2" trend="up" delta="14日" />
     </div>
 
-    <BaseCard title="训练数据趋势" icon="📉" accent="acid">
+    <BaseCard ref="heatmapRef" title="训练出勤热力图" icon="🗓️" accent="acid" subtitle="90 天训练强度一览，深色 = 大训练量">
+      <TrainingHeatmap :logs="logs" />
+    </BaseCard>
+
+    <TrainingMetricCards :logs="logs" @jump="scrollTo" />
+
+    <BaseCard ref="trendRef" title="训练数据趋势" icon="📉" accent="acid">
       <template #actions>
         <button class="btn-steel !py-1.5 text-xs" @click="exportData">
           <Download :size="13" /> 导出 CSV
@@ -52,7 +73,7 @@ function exportData() {
       <TrainingTrendChart :logs="logs" />
     </BaseCard>
 
-    <BaseCard title="训练明细记录" icon="📋" accent="steel">
+    <BaseCard ref="detailRef" title="训练明细记录" icon="📋" accent="steel" subtitle="原始数据 · 按日期倒序展示最近 20 条">
       <div class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
@@ -61,11 +82,12 @@ function exportData() {
               <th class="py-2 pr-4 font-semibold">Rank 分</th>
               <th class="py-2 pr-4 font-semibold">Rank 场</th>
               <th class="py-2 pr-4 font-semibold">训练赛</th>
+              <th class="py-2 pr-4 font-semibold">加权训练量</th>
             </tr>
           </thead>
           <tbody class="font-mono">
             <tr
-              v-for="l in [...logs].reverse().slice(0, 10)"
+              v-for="l in [...logs].reverse().slice(0, 20)"
               :key="l.id"
               class="border-b border-edge-soft/50 hover:bg-panel-2"
             >
@@ -73,6 +95,9 @@ function exportData() {
               <td class="py-2 pr-4 text-acid">{{ l.rankPoints }}</td>
               <td class="py-2 pr-4 text-steel">{{ l.rankGames }}</td>
               <td class="py-2 pr-4 text-ember">{{ l.scrimGames }}</td>
+              <td class="py-2 pr-4 font-bold text-violetx">
+                {{ (l.rankGames * 1 + l.scrimGames * 2.5).toFixed(1) }}
+              </td>
             </tr>
           </tbody>
         </table>
