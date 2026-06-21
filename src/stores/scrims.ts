@@ -79,7 +79,7 @@ export const useScrimsStore = defineStore('scrims', () => {
   )
 
   async function saveOpponent(o: Opponent) {
-    const exists = opponents.value.some((x) => x.id === o.id)
+    const exists = o.id && opponents.value.some((x) => x.id === o.id)
     if (exists) {
       const updated = await opponentRepo.update(o.id, o)
       if (updated) {
@@ -112,7 +112,7 @@ export const useScrimsStore = defineStore('scrims', () => {
     }
   }
   async function saveScrimRecord(r: ScrimRecord) {
-    const exists = scrimRecords.value.some((x) => x.id === r.id)
+    const exists = r.id && scrimRecords.value.some((x) => x.id === r.id)
     if (exists) {
       const updated = await scrimRecordRepo.update(r.id, r)
       if (updated) {

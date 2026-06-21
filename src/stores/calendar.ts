@@ -31,11 +31,16 @@ export const useCalendarStore = defineStore('calendar', () => {
   )
 
   const reminders = computed(() =>
-    tasks.value.filter((t) => t.reminder && t.status !== 'done'),
+    tasks.value.filter((t) => {
+      if (!t.reminder || t.status === 'done') return false
+      const start = new Date(t.startAt).getTime()
+      const now = Date.now()
+      return start >= now - 3600000 && start <= now + 24 * 3600 * 1000
+    }),
   )
 
   async function save(t: CalendarTask) {
-    const exists = tasks.value.some((x) => x.id === t.id)
+    const exists = t.id && tasks.value.some((x) => x.id === t.id)
     if (exists) {
       const updated = await calendarTaskRepo.update(t.id, t)
       if (updated) {

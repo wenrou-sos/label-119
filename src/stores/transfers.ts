@@ -47,7 +47,7 @@ export const useTransferStore = defineStore('transfers', () => {
     }
   }
   async function saveTransfer(t: Transfer) {
-    const exists = transfers.value.some((x) => x.id === t.id)
+    const exists = t.id && transfers.value.some((x) => x.id === t.id)
     if (exists) {
       const updated = await transferRepo.update(t.id, t)
       if (updated) {

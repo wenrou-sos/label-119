@@ -57,6 +57,7 @@ class MemoryRepository<T extends { id: string }> {
   async create(data: Omit<T, 'id'> & Partial<Pick<T, 'id'>>): Promise<T> {
     await wait()
     const item = { ...(data as object), id: data.id ?? uid('x') } as T
+    if (!item.id) item.id = uid('x')
     this.items.push(item)
     return clone(item)
   }

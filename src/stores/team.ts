@@ -94,7 +94,7 @@ export const useTeamStore = defineStore('team', () => {
   })
 
   async function savePlayer(p: Player) {
-    const exists = players.value.some((x) => x.id === p.id)
+    const exists = p.id && players.value.some((x) => x.id === p.id)
     if (exists) {
       const updated = await playerRepo.update(p.id, p)
       if (updated) {
@@ -113,7 +113,7 @@ export const useTeamStore = defineStore('team', () => {
     playerHeroes.value = playerHeroes.value.filter((ph) => ph.playerId !== id)
   }
   async function savePlayerHero(ph: PlayerHero) {
-    const exists = playerHeroes.value.some((x) => x.id === ph.id)
+    const exists = ph.id && playerHeroes.value.some((x) => x.id === ph.id)
     if (exists) {
       const updated = await playerHeroRepo.update(ph.id, ph)
       if (updated) {
@@ -135,7 +135,7 @@ export const useTeamStore = defineStore('team', () => {
     return created
   }
   async function saveContract(c: Contract) {
-    const exists = contracts.value.some((x) => x.id === c.id)
+    const exists = c.id && contracts.value.some((x) => x.id === c.id)
     if (exists) {
       const updated = await contractRepo.update(c.id, c)
       if (updated) {

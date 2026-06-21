@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Plus, MapPin, ArrowRight, MessageSquare } from 'lucide-vue-next'
 import BaseCard from '@/components/BaseCard.vue'
 import Badge from '@/components/Badge.vue'
@@ -23,6 +23,15 @@ const STATUS_LABELS: Record<TransferStatus, string> = { open: '进行中', trial
 const STATUS_TONE: Record<TransferStatus, Tone> = { open: 'gold', trialing: 'steel', done: 'acid', failed: 'ember' }
 
 const selectedId = ref(transfers.transfers[0]?.id ?? '')
+watch(
+  () => transfers.transfers,
+  (list) => {
+    if (!list.some((t) => t.id === selectedId.value) && list.length > 0) {
+      selectedId.value = list[0].id
+    }
+  },
+  { deep: true },
+)
 const selected = computed(() =>
   transfers.transfersWithPlayer.find((t) => t.id === selectedId.value),
 )
